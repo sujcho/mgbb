@@ -29,12 +29,12 @@ function initClient() {
     scope: SCOPES
   }).then(function () {
 // Listen for sign-in state changes.
-gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+  gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
 
-// Handle the initial sign-in state.
-updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-authorizeButton.onclick = handleAuthClick;
-signoutButton.onclick = handleSignoutClick;
+  // Handle the initial sign-in state.
+  updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+  authorizeButton.onclick = handleAuthClick;
+  signoutButton.onclick = handleSignoutClick;
 });
 }
 
@@ -82,69 +82,78 @@ pre.appendChild(textContent);
 }
 
 
-function listLabels3() {
-  gapi.client.gmail.users.messages.list({
-    'userId': 'me'
-  }).then(function(response) {
-//var labels = response.result.messages;
-var messages = response.result.messages;
-appendPre('Labels:');
-
-if (messages && messages.length > 0) {
-  for (i = 0; i < messages.length; i++) {
-    var message = messages[i];
-    console.log(message.id)
-    var m = gapi.client.gmail.users.messages.get({
-      'userId': 'me',
-      'id': message.id,
-      'format': 'full'
-    });
-    m.execute(function (response) {
-      var h = response.result.payload.headers;
-      h.forEach(function(element) {
-        if (element.name == 'From') {
-         console.log(element.value)
-       }
-     })
-    })
-
-
-  }
-} else {
-  appendPre('No Labels found.');
+function httpGetAsync(theUrl, callback)
+{
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() { 
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+            callback(xmlHttp.responseText);
+    }
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+    xmlHttp.send(null);
 }
-});
-}
+
+
 
 function printlist(response) {
   var messages = response.result.messages;
-  appendPre('Labels:');
+  var batch = gapi.client.newBatch();
+  var counter = {};
 
-  if (messages && messages.length > 0) {
+  if (messages.length > 0 && messages.length <= 100) {
     for (i = 0; i < messages.length; i++) {
       var message = messages[i];
-      var m = gapi.client.gmail.users.messages.get({
+
+      batch.add(gapi.client.gmail.users.messages.get({
         'userId': 'me',
         'id': message.id,
-        'format': 'full'
-      });
-      m.execute(function (response) {
-        var h = response.result.payload.headers;
-        h.forEach(function(element) {
-          if (element.name == 'From') {
-            console.log(element.value)
-          }
-        })
-      })
-
-
+        'format' : 'metadata',
+        'metadataHeaders' : 'From'
+      }))
     }
-  } else {
-    appendPre('No Labels found.');
+    batch.execute(function(responseMap, rawBatchResponse){
+      
+      for (response in responseMap) {
+          counter[responseMap[response].result.payload.headers[0].value] = 
+            (counter[responseMap[response].result.payload.headers[0].value] || 0) + 1;
+      }
+
+      // for (response in responseMap){
+      //   var h = responseMap[response].result.payload.headers[0].value;
+      //   console.log(h)
+      // }
+    })
+  } 
+  // else if (messages.length > 100){
+  //   for (i = 0; i < Math.ceil(messages.length / 100.0); i++){
+  //     for (j = 0; j < 100; j++){
+  //       var message = messages[100*i+j];
+  //       batch.add(gapi.client.gmail.users.messages.get({
+  //       'userId': 'me',
+  //       'id': message.id,
+  //       'format' : 'metadata',
+  //       'metadataHeaders' : 'From'
+  //       }))
+  //     }
+  //     batch.execute(function(responseMap, rawBatchResponse){
+  //       for (response in responseMap){
+  //         var h = responseMap[response].result.payload.headers[0].value;
+  //         console.log(h)
+  //         }
+  //     })
+  //   }
+  // }  
+  else{
+      
+  } 
+  for (key in counter) {
+    console.log("we have ", key, " duplicated ", counter[key], " times");
   }
 }
 
 function listMessages() {
+  console.log(listLabels())
+
   var getPageOfMessages = function(request, result) {
     request.execute(function(resp) {
       result = result.concat(resp.messages);
@@ -152,8 +161,10 @@ function listMessages() {
       if (nextPageToken) {
         request = gapi.client.gmail.users.messages.list({
           'userId': 'me',
+          'maxResults' : 100,
           'pageToken': nextPageToken,
         });
+
         printlist(resp);
         getPageOfMessages(request, result);
       } else {
@@ -165,4 +176,14 @@ function listMessages() {
     'userId': 'me',
   });
   getPageOfMessages(initialRequest, []);
+}
+
+function listLabels() {
+  var request = gapi.client.gmail.users.labels.list({
+    'userId': 'me'
+  });
+  request.execute(function(resp) {
+    console.log("here", resp)
+    return resp.result;
+  });
 }
