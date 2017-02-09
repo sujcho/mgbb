@@ -80,7 +80,7 @@ function httpGetAsync(theUrl, callback) {
     if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
       callback(xmlHttp.responseText);
   }
-  xmlHttp.open("GET", theUrl, true); // true for asynchronous
+  xmlHttp.open("GET", theUrl, true); // true for asynchronous 
   xmlHttp.send(null);
 }
 
@@ -94,23 +94,17 @@ function httpGetAsync(theUrl, callback) {
  * Description:
  *  This function receives the batch result of message metadata
  *  and organize metadata by sender email address as well as
- *  sender email domain. For each sender email address and
+ *  sender email domain. For each sender email address and 
  *  each sender email domain, it counts the total number of
  *  messages, the total number of unread messages, and the
  *  total number of read messages.
- *
- * @param{list} list object of formatted metadata from gapi batch function
+ * 
+ * @param{list} list object of formatted metadata from gapi batch function 
  * @param{list} list object of unformatted json metadata from gapi batch function
  *
  * See: https://developers.google.com/api-client-library/javascript/reference/referencedocs
  *      for further information on gapi client batch function.
  */
- function keyMapObj(count, read, unread, id){
-   this.count = count;
-   this.read = read;
-   this.unread = unread;
-   this.id = id;
- }
 
 var senderKeyMap = function() {
   var keyMapFull = {};
@@ -118,35 +112,14 @@ var senderKeyMap = function() {
 
   this.createKeyMap = function(formatResponse, rawResponse) {
     for (resp in formatResponse) {
-    //  console.log(formatResponse[resp]);
+      console.log(formatResponse[resp])
       var keyFull = formatResponse[resp].result.payload.headers[0].value;
-      var labelIds = formatResponse[resp].result.labelIds;
-      var unread = labelIds.find(function(element){
-          return (element == "UNREAD");
-      });
-
       if (keyFull.includes("<") && keyFull.includes(">")) {
         keyFull = keyFull.split("<")[1].split(">")[0];
       }
       var keyDomain = keyFull.split("@")[1];
-      //keyMapFull[keyFull] = (keyMapFull[keyFull] || 0) + 1;
-      if(!keyMapFull[keyFull]){
-          keyMapFull[keyFull] = new keyMapObj();
-      }
-      if(!keyMapDomain[keyDomain]){
-         keyMapDomain[keyDomain] = new keyMapObj();
-      }
-      keyMapFull[keyFull].count = (keyMapFull[keyFull].count || 0) + 1;
-      keyMapDomain[keyDomain].count = (keyMapDomain[keyDomain].count || 0) + 1;
-
-      if(unread){
-        keyMapFull[keyFull].unread = (keyMapFull[keyFull].unread || 0) + 1;
-        keyMapDomain[keyDomain].unread = (keyMapDomain[keyDomain].unread || 0) + 1;
-      }
-      else{
-        keyMapFull[keyFull].read = (keyMapFull[keyFull].read || 0) + 1;
-        keyMapDomain[keyDomain].read = (keyMapDomain[keyDomain].read || 0) + 1;
-      }
+      keyMapFull[keyFull] = (keyMapFull[keyFull] || 0) + 1;
+      keyMapDomain[keyDomain] = (keyMapDomain[keyDomain] || 0) + 1;
     }
   }
 
@@ -161,16 +134,14 @@ var senderKeyMap = function() {
 
 var newKeyMap = new senderKeyMap ();
 
-
-
 /*
  * Function Name: getMessageLists
  * Description:
  *  The function requests list of all messages in user 's account
  *  The function then calls batchMessageList function
- *
+ *  
  * @param {NULL}
- *
+ * 
  * See: https://developers.google.com/gmail/api/v1/reference/users/messages/list
  *      for further information on gapi message list function
  */
@@ -204,9 +175,9 @@ function getMessageLists() {
  *  The function receives message list object as an input and
  *  makes batch request batch to get every message in the list.
  *  The function then calls senderKeyMap function.
- *
+ * 
  * @param{list} message list object from getMessageLists
- *
+ * 
  * See: https://developers.google.com/gmail/api/v1/reference/users/messages/get
  *      for further information on gapi message get function
  * See: https://developers.google.com/api-client-library/javascript/reference/referencedocs
@@ -231,8 +202,8 @@ function batchMessageList(messageList) {
     }
 
     batch.execute(newKeyMap.createKeyMap);
-    console.log(newKeyMap.returnKeyMapFull());
-    console.log(newKeyMap.returnKeyMapDomain());
+    //console.log(newKeyMap.returnKeyMapFull());
+    //console.log(newKeyMap.returnKeyMapDomain());
   }
 }
 
