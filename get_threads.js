@@ -90,6 +90,51 @@ function httpGetAsync(theUrl, callback) {
 /****************************************************************/
 
 /*
+ * Function Name: senderKeyMap
+ * Description:
+ *  This function receives the batch result of message metadata
+ *  and organize metadata by sender email address as well as
+ *  sender email domain. For each sender email address and 
+ *  each sender email domain, it counts the total number of
+ *  messages, the total number of unread messages, and the
+ *  total number of read messages.
+ * 
+ * @param{list} list object of formatted metadata from gapi batch function 
+ * @param{list} list object of unformatted json metadata from gapi batch function
+ *
+ * See: https://developers.google.com/api-client-library/javascript/reference/referencedocs
+ *      for further information on gapi client batch function.
+ */
+
+var senderKeyMap = function() {
+  var keyMapFull = {};
+  var keyMapDomain = {};
+
+  this.createKeyMap = function(formatResponse, rawResponse) {
+    for (resp in formatResponse) {
+      console.log(formatResponse[resp])
+      var keyFull = formatResponse[resp].result.payload.headers[0].value;
+      if (keyFull.includes("<") && keyFull.includes(">")) {
+        keyFull = keyFull.split("<")[1].split(">")[0];
+      }
+      var keyDomain = keyFull.split("@")[1];
+      keyMapFull[keyFull] = (keyMapFull[keyFull] || 0) + 1;
+      keyMapDomain[keyDomain] = (keyMapDomain[keyDomain] || 0) + 1;
+    }
+  }
+
+  this.returnKeyMapFull = function() {
+    return keyMapFull;
+  }
+
+  this.returnKeyMapDomain = function() {
+    return keyMapDomain;
+  }
+}
+
+var newKeyMap = new senderKeyMap ();
+
+/*
  * Function Name: getMessageLists
  * Description:
  *  The function requests list of all messages in user 's account
@@ -143,7 +188,6 @@ function getMessageLists() {
 function batchMessageList(messageList) {
   var messages = messageList.result.messages;
   var batch = gapi.client.newBatch();
-  var newKeyMap = new senderKeyMap();
 
   if (messages && messages.length > 0) {
     for (i = 0; i < messages.length; i++) {
@@ -156,49 +200,10 @@ function batchMessageList(messageList) {
         'metadataHeaders': 'From'
       }))
     }
-    
+
     batch.execute(newKeyMap.createKeyMap);
-    console.log(newKeyMap.returnKeyMapDomain());
-  }
-}
-
-/*
- * Function Name: senderKeyMap
- * Description:
- *  This function receives the batch result of message metadata
- *  and organize metadata by sender email address as well as
- *  sender email domain. For each sender email address and 
- *  each sender email domain, it counts the total number of
- *  messages, the total number of unread messages, and the
- *  total number of read messages.
- * 
- * @param{list} list object of formatted metadata from gapi batch function 
- * @param{list} list object of unformatted json metadata from gapi batch function
- *
- * See: https://developers.google.com/api-client-library/javascript/reference/referencedocs
- *      for further information on gapi client batch function.
- */
-
-//var senderKeyMap = function() {
-  var keyMapFull = {};
-  var keyMapDomain = {};
-
-  this.createKeyMap = function(formatResponse, rawResponse) {
-    // Create Full KeyMap
-    for (resp in formatResponse) {
-      var keyFull = formatResponse[resp].result.payload.headers[0].value;
-      var keyDomain = keyFull.split("@")[1].split(">")[0];
-      keyMapFull[keyFull] = (keyMapFull[keyFull] || 0) + 1;
-      keyMapDomain[keyDomain] = (keyMapDomain[keyDomain] || 0) + 1;
-    }
-  }
-
-  this.returnKeyMapFull = function() {
-    return keyMapFull;
-  }
-
-  this.returnKeyMapDomain = function() {
-    return keyMapDomain;
+    //console.log(newKeyMap.returnKeyMapFull());
+    //console.log(newKeyMap.returnKeyMapDomain());
   }
 }
 
