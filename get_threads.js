@@ -4,10 +4,6 @@ var SCOPES = 'https://mail.google.com/';
 var authorizeButton = document.getElementById('authorize-button');
 var signoutButton = document.getElementById('signout-button');
 
-// key map variable to store unread,read,total counts per each sender email address
-var senderKeyMap = {};
-
-
 /**
  *  On load, called to load the auth2 library and API client library.
  */
@@ -88,11 +84,21 @@ function httpGetAsync(theUrl, callback) {
   xmlHttp.send(null);
 }
 
+/****************************************************************/
+/********************  END OF EXAMPLE CODE **********************/
+/**********************  BEGIN MGBB CODE ************************/
+/****************************************************************/
+
 /*
- Function Name: getMessageLists
- Description:
-  The function requests list of all messages in user's account
-  The function then calls batchMessageList function
+ * Function Name: getMessageLists
+ * Description:
+ *  The function requests list of all messages in user 's account
+ *  The function then calls batchMessageList function
+ *  
+ * @param {NULL}
+ * 
+ * See: https://developers.google.com/gmail/api/v1/reference/users/messages/list
+ *      for further information on gapi message list function
  */
 
 function getMessageLists() {
@@ -119,16 +125,25 @@ function getMessageLists() {
 }
 
 /*
- Function Name: batchMessageList
- Description:
-  The function receives message list object and
-  request batch get for every message in the list.
-  The function then calls createSenderKeyMap function.
+ * Function Name: batchMessageList
+ * Description:
+ *  The function receives message list object as an input and
+ *  makes batch request batch to get every message in the list.
+ *  The function then calls senderKeyMap function.
+ * 
+ * @param{list} message list object from getMessageLists
+ * 
+ * See: https://developers.google.com/gmail/api/v1/reference/users/messages/get
+ *      for further information on gapi message get function
+ * See: https://developers.google.com/api-client-library/javascript/reference/referencedocs
+ *      for further information on gapi client batch function
  */
+
 
 function batchMessageList(messageList) {
   var messages = messageList.result.messages;
   var batch = gapi.client.newBatch();
+  var newKeyMap = new senderKeyMap();
 
   if (messages && messages.length > 0) {
     for (i = 0; i < messages.length; i++) {
@@ -141,26 +156,49 @@ function batchMessageList(messageList) {
         'metadataHeaders': 'From'
       }))
     }
-    batch.execute(createSenderKeyMap);
+    
+    batch.execute(newKeyMap.createKeyMap);
+    console.log(newKeyMap.returnKeyMapDomain());
   }
 }
 
 /*
- Function Name: createSenderKeyMap
- Description:
-  This function gets batch result of message metadata
-  and create key-value map that contains total number of mails,
-  total number of unread and read messages for each sender
+ * Function Name: senderKeyMap
+ * Description:
+ *  This function receives the batch result of message metadata
+ *  and organize metadata by sender email address as well as
+ *  sender email domain. For each sender email address and 
+ *  each sender email domain, it counts the total number of
+ *  messages, the total number of unread messages, and the
+ *  total number of read messages.
+ * 
+ * @param{list} list object of formatted metadata from gapi batch function 
+ * @param{list} list object of unformatted json metadata from gapi batch function
+ *
+ * See: https://developers.google.com/api-client-library/javascript/reference/referencedocs
+ *      for further information on gapi client batch function.
  */
 
-function createSenderKeyMap(formatResponse, rawResponse) {
-  // Create Key(Sender Address)-Value(Count) map
-  for (resp in formatResponse) {
-    senderKeyMap[formatResponse[resp].result.payload.headers[0].value] =
-      (senderKeyMap[formatResponse[resp].result.payload.headers[0].value] || 0) + 1;
+//var senderKeyMap = function() {
+  var keyMapFull = {};
+  var keyMapDomain = {};
+
+  this.createKeyMap = function(formatResponse, rawResponse) {
+    // Create Full KeyMap
+    for (resp in formatResponse) {
+      var keyFull = formatResponse[resp].result.payload.headers[0].value;
+      var keyDomain = keyFull.split("@")[1].split(">")[0];
+      keyMapFull[keyFull] = (keyMapFull[keyFull] || 0) + 1;
+      keyMapDomain[keyDomain] = (keyMapDomain[keyDomain] || 0) + 1;
+    }
   }
-  for (sender in senderKeyMap) {
-    console.log("we have ", sender, " duplicated ", senderKeyMap[sender], " times");
+
+  this.returnKeyMapFull = function() {
+    return keyMapFull;
+  }
+
+  this.returnKeyMapDomain = function() {
+    return keyMapDomain;
   }
 }
 
@@ -171,7 +209,7 @@ function createSenderKeyMap(formatResponse, rawResponse) {
   and adds up the number of messages in each label.
   The returned value of total number of messages
   can be used for displaying the progress of the applicaiton.
- */
+  */
 
 function returnTotalCount() {
   var totalcount = 0;
