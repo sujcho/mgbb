@@ -3,7 +3,7 @@ var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/gmail/v1/res
 var SCOPES = 'https://mail.google.com/';
 var authorizeButton = document.getElementById('authorize-button');
 var signoutButton = document.getElementById('signout-button');
-
+var temp = "mungee";
 /**
  *  On load, called to load the auth2 library and API client library.
  */
