@@ -233,7 +233,7 @@ function returnTotalCount() {
               'id': label.id
             }).execute(function(response) {
               totalcount += response.result.messagesTotal;
-            })
+            });
           }
         } else {
           gapi.client.gmail.users.labels.get({
@@ -241,10 +241,10 @@ function returnTotalCount() {
             'id': label.id
           }).execute(function(response) {
             totalcount += response.result.messagesTotal;
-          })
+          });
         }
       }
     } else {}
-    console.log(totalcount)
+    console.log(totalcount);
   });
 }
